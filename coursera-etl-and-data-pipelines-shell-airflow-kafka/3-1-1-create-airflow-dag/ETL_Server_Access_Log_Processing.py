@@ -48,7 +48,7 @@ extract = BashOperator(
 # define the task 'transform'
 transform = BashOperator(
     task_id='transform',
-    bash_command='tr '[:lower:]' '[:upper:]' < /home/project/airflow/dags/extracted-data.txt > /home/project/airflow/dags/transformed-data.csv',
+    bash_command="tr '[:lower:]' '[:upper:]' < /home/project/airflow/dags/extracted-data.txt > /home/project/airflow/dags/transformed-data.csv",
     dag=dag,
 )
 
