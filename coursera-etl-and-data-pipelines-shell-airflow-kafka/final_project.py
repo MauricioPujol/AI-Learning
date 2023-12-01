@@ -32,34 +32,43 @@ dag = DAG(
 # define the task 'unzip_data'
 unzip_data = BashOperator(
     task_id='unzip_data',
-    bash_command='sudo tar -xvzf /home/project/airflow/dags/finalassignment/tolldata.tgz'
+    bash_command="sudo tar -xvzf /home/project/airflow/dags/finalassignment/tolldata.tgz",
     dag=dag,
 )
 
 # define the task 'extract_data_from_csv'
-extract_data_from_csv = BashOperator(
+extract_data_from_csv = BashOperator( # Extract Rowid, Timestamp, Anonymized Vehicle number, Vehicle type
     task_id='extract_data_from_csv',
-    bash_command='sudo cut -d',' -f1,2,3,4 vehicle-data.csv > csv_data.csv'
+    bash_command="sudo cut -d',' -f1,2,3,4 vehicle-data.csv | tr -d '\t' > csv_data.csv",
     dag=dag,
 )
 
-# define the task 'extract_data_from_csv'
-extract_data_from_tsv = BashOperator(
+# define the task 'extract_data_from_tsv'
+extract_data_from_tsv = BashOperator( # Extract Number of axles, Tollplaza id, Tollplaza code
     task_id='extract_data_from_tsv',
-    bash_command='sudo cut -d$'\t' -f5,6,7 tollplaza-data.tsv > tsv_data.csv'
+    bash_command="sudo cut -d$'\t' -f5,6,7 tollplaza-data.tsv | sed 's/\t/,/g' > tsv_data.csv",
     dag=dag,
 )
 
 # define the task 'extract_data_from_fixed_width'
-extract_data_from_fixed_width = BashOperator(
+extract_data_from_fixed_width = BashOperator( # Type of Payment code, Tollplaza id, Vehicle code
     task_id='extract_data_from_fixed_width',
-    bash_command='sudo tr -s ' ' ',' < payment-data.txt | cut -d',' -f11,12 > fixed_width_data.csv'
+    bash_command="sudo tr -s ' ' ',' < payment-data.txt | cut -d',' -f11,12 > fixed_width_data.csv",
     dag=dag,
 )
 
 # define the task 'consolidate_data'
 consolidate_data = BashOperator(
     task_id='consolidate_data',
-    bash_command='sudo tr -s ' ' ',' < payment-data.txt | cut -d',' -f11,12 > fixed_width_data.csv'
+    bash_command="sudo paste -d, fixed_width_data.csv csv_data.csv tsv_data.csv > extracted_data.csv",
     dag=dag,
 )
+
+# define the task 'transform_data'
+transform_data = BashOperator(
+    task_id='transform_data',
+    bash_command="paste -d, <(cut -d',' -f1-3 extracted_data.csv) <(cut -d',' -f4 extracted_data.csv | tr '[:lower:]' '[:upper:]') <(cut -d',' -f5-8 extracted_data.csv) > transformed_data.csv",
+    dag=dag,
+)
+
+unzip_data >>extract_data_from_csv >> extract_data_from_tsv >> extract_data_from_fixed_width >> consolidate_data >> transform_data
